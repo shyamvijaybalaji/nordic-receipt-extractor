@@ -1,6 +1,6 @@
 {
   "id": "b8eb62f4-b9cc-487e-a81e-7ce3eadbe296",
-  "versionId": "5cff8822-5a3e-4b9a-828e-83c7e47f4b3b",
+  "versionId": "b8b75620-d37d-4477-bbf4-b64571a47d83",
   "name": "Receipt Extraction - Haiku",
   "active": false,
   "settings": {
@@ -1031,6 +1031,162 @@
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 2000
+    },
+    {
+      "id": "m1-scan",
+      "name": "Scan For Malware",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        460
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://clamav-rest:9000/v2/scan",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json",
+              "neverError": true
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "m2-found-if",
+      "name": "Malware Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1260,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-malware-found",
+              "leftValue": "={{ $json.Status }}",
+              "rightValue": "FOUND",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "m3-mark-malware",
+      "name": "Mark Malware Rejected",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1480,
+        380
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents?id=eq.{{ $('Fetch Document Row').first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'failed', failure_reason: 'Malware detected: ' + ($json.Description || 'unknown signature') }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "m4-delete-file",
+      "name": "Delete Infected File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        380
+      ],
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/storage/v1/object/documents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prefixes: [ $('Fetch Document Row').first().json.storage_path ] }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -1082,7 +1238,7 @@
       "main": [
         [
           {
-            "node": "Prepare Haiku Request",
+            "node": "Scan For Malware",
             "type": "main",
             "index": 0
           }
@@ -1330,6 +1486,46 @@
           },
           {
             "node": "Prepare Sonnet Usage Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scan For Malware": {
+      "main": [
+        [
+          {
+            "node": "Malware Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Malware Found?": {
+      "main": [
+        [
+          {
+            "node": "Mark Malware Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Haiku Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Malware Rejected": {
+      "main": [
+        [
+          {
+            "node": "Delete Infected File",
             "type": "main",
             "index": 0
           }
