@@ -14,6 +14,7 @@ export interface DocumentRow {
 	original_filename: string;
 	status: string;
 	uploaded_at: string;
+	failure_reason: string | null;
 	extracted_fields: ExtractedFields[];
 }
 
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const { data, error } = await supabase
 		.from('documents')
 		.select(
-			'id, original_filename, status, uploaded_at, extracted_fields(vendor, total, currency, category, category_source, needs_review)'
+			'id, original_filename, status, uploaded_at, failure_reason, extracted_fields(vendor, total, currency, category, category_source, needs_review)'
 		)
 		.order('uploaded_at', { ascending: false });
 

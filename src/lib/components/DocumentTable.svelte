@@ -13,6 +13,7 @@
 		original_filename: string;
 		status: string;
 		uploaded_at: string;
+		failure_reason: string | null;
 		extracted_fields: ExtractedFields[];
 	};
 
@@ -110,7 +111,10 @@
 						{/if}
 					</td>
 					<td>
-						<span class="badge {STATUS_CLASS[doc.status] ?? ''}">
+						<span
+							class="badge {STATUS_CLASS[doc.status] ?? ''}"
+							title={doc.status === 'failed' ? (doc.failure_reason ?? undefined) : undefined}
+						>
 							{STATUS_LABEL[doc.status] ?? doc.status}
 						</span>
 					</td>

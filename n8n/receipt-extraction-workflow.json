@@ -1,6 +1,6 @@
 {
   "id": "b8eb62f4-b9cc-487e-a81e-7ce3eadbe296",
-  "versionId": "f1608a9a-7a41-4119-be07-a3fb62c93cac",
+  "versionId": "5cff8822-5a3e-4b9a-828e-83c7e47f4b3b",
   "name": "Receipt Extraction - Haiku",
   "active": false,
   "settings": {
@@ -97,7 +97,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w4-mark-processing",
@@ -140,7 +143,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w5-download-file",
@@ -179,7 +185,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w6-prepare-claude",
@@ -231,7 +240,11 @@
           "id": "87f557ee-fb70-4927-a575-14ea12168c5a",
           "name": "Anthropic API Key"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
     },
     {
       "id": "w8-validate",
@@ -329,7 +342,11 @@
           "id": "87f557ee-fb70-4927-a575-14ea12168c5a",
           "name": "Anthropic API Key"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "continueOnFail": true
     },
     {
       "id": "w8e-validate-sonnet",
@@ -411,7 +428,10 @@
           "name": "Supabase Service Role"
         }
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w9c-apply-cache",
@@ -476,7 +496,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w10-update-status",
@@ -519,7 +542,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w3a-fetch-profile",
@@ -574,7 +600,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w3b-check-usage",
@@ -630,7 +659,10 @@
           "name": "Supabase Service Role"
         }
       },
-      "alwaysOutputData": true
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w3c-evaluate-cap",
@@ -719,7 +751,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w7a-prep-haiku-log",
@@ -775,7 +810,10 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     },
     {
       "id": "w8f-prep-sonnet-log",
@@ -831,7 +869,168 @@
           "id": "17193cf8-d08b-4259-8911-45dec3d63606",
           "name": "Supabase Service Role"
         }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "7dccf81b-b0e0-45a9-97aa-3d64c422c77e",
+      "name": "Haiku Call Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-haiku-failed",
+              "leftValue": "={{ $json.error ? true : false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
       }
+    },
+    {
+      "id": "b216fb75-1821-40cb-a100-07552837b05d",
+      "name": "Mark Haiku Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        580
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents?id=eq.{{ $('Prepare Haiku Request').first().json.document_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'failed', failure_reason: 'Haiku call failed after retries: ' + String($json.error).slice(0, 500) }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "3ea0c88c-e00b-46e7-a354-ccae08414ba7",
+      "name": "Sonnet Call Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-sonnet-failed",
+              "leftValue": "={{ $json.error ? true : false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "9a9b546b-6146-4ff5-857f-cfe123e90e0d",
+      "name": "Mark Sonnet Failure",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2600,
+        -60
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents?id=eq.{{ $('Prepare Sonnet Request').first().json.document_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'failed', failure_reason: 'Sonnet call failed after retries: ' + String($json.error).slice(0, 500) }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -905,12 +1104,7 @@
       "main": [
         [
           {
-            "node": "Validate Haiku Extraction",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Haiku Usage Log",
+            "node": "Haiku Call Failed?",
             "type": "main",
             "index": 0
           }
@@ -961,12 +1155,7 @@
       "main": [
         [
           {
-            "node": "Validate Sonnet Extraction",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Prepare Sonnet Usage Log",
+            "node": "Sonnet Call Failed?",
             "type": "main",
             "index": 0
           }
@@ -1095,6 +1284,52 @@
         [
           {
             "node": "Log Sonnet Usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Haiku Call Failed?": {
+      "main": [
+        [
+          {
+            "node": "Mark Haiku Failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Haiku Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Haiku Usage Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sonnet Call Failed?": {
+      "main": [
+        [
+          {
+            "node": "Mark Sonnet Failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Validate Sonnet Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Sonnet Usage Log",
             "type": "main",
             "index": 0
           }
