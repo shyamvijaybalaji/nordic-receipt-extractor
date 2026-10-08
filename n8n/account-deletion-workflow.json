@@ -1,0 +1,238 @@
+{
+  "id": "5480ed92-3092-4c64-b12a-79dfd17d6772",
+  "versionId": "e0828be4-ae4b-474f-9b96-3e04112ac248",
+  "name": "Account Deletion",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "d1-webhook",
+      "name": "Account Delete Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-40, 300],
+      "webhookId": "account-delete",
+      "parameters": {
+        "path": "account-delete",
+        "httpMethod": "POST",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3f0cadf1-c641-4f37-ac56-e64d71c9c008",
+          "name": "Receipt Webhook Secret"
+        }
+      }
+    },
+    {
+      "id": "d2-parse-trigger",
+      "name": "Parse Trigger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [180, 300],
+      "parameters": {
+        "jsCode": "const userId = $input.first().json.body?.user_id;\nif (!userId) {\n  throw new Error('user_id missing from webhook body');\n}\nreturn [{ json: { user_id: userId } }];"
+      }
+    },
+    {
+      "id": "d3-list-storage",
+      "name": "List Storage Objects",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [400, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/storage/v1/object/list/documents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prefix: $json.user_id, limit: 1000 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d4-prepare-removal",
+      "name": "Prepare Storage Removal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300],
+      "parameters": {
+        "jsCode": "const userId = $('Parse Trigger').first().json.user_id;\nconst objects = $input.all().map((item) => item.json).filter((o) => o && o.name);\nconst paths = objects.map((o) => `${userId}/${o.name}`);\nreturn [{ json: { user_id: userId, paths } }];"
+      }
+    },
+    {
+      "id": "d4b-has-files",
+      "name": "Has Files?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [840, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-files",
+              "leftValue": "={{ $json.paths.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "d5-remove-storage",
+      "name": "Remove Storage Objects",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, 220],
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/storage/v1/object/documents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prefixes: $json.paths }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "d6-delete-auth-user",
+      "name": "Delete Auth User",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, 300],
+      "parameters": {
+        "method": "DELETE",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/auth/v1/admin/users/{{ $('Parse Trigger').first().json.user_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      }
+    },
+    {
+      "id": "d7-respond",
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 300],
+      "parameters": {
+        "jsCode": "const userId = $('Parse Trigger').first().json.user_id;\nconst removedFiles = $('Prepare Storage Removal').first().json.paths.length;\nreturn [{ json: { deleted: true, user_id: userId, removed_files: removedFiles } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Account Delete Webhook": {
+      "main": [[{ "node": "Parse Trigger", "type": "main", "index": 0 }]]
+    },
+    "Parse Trigger": {
+      "main": [[{ "node": "List Storage Objects", "type": "main", "index": 0 }]]
+    },
+    "List Storage Objects": {
+      "main": [[{ "node": "Prepare Storage Removal", "type": "main", "index": 0 }]]
+    },
+    "Prepare Storage Removal": {
+      "main": [[{ "node": "Has Files?", "type": "main", "index": 0 }]]
+    },
+    "Has Files?": {
+      "main": [
+        [{ "node": "Remove Storage Objects", "type": "main", "index": 0 }],
+        [{ "node": "Delete Auth User", "type": "main", "index": 0 }]
+      ]
+    },
+    "Remove Storage Objects": {
+      "main": [[{ "node": "Delete Auth User", "type": "main", "index": 0 }]]
+    },
+    "Delete Auth User": {
+      "main": [[{ "node": "Prepare Response", "type": "main", "index": 0 }]]
+    }
+  }
+}

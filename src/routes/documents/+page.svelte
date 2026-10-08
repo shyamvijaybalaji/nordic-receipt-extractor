@@ -117,6 +117,7 @@
 			<a class="btn" href="/export/csv">Export CSV</a>
 			<a class="btn" href="/export/xlsx">Export Excel</a>
 		{/if}
+		<a class="btn" href="/account">Account</a>
 	</div>
 </div>
 

@@ -3,7 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { sequence } from '@sveltejs/kit/hooks';
 
-const PROTECTED_PREFIXES = ['/documents', '/export', '/summary'];
+const PROTECTED_PREFIXES = ['/documents', '/export', '/summary', '/account'];
 
 const attachSupabase: Handle = async ({ event, resolve }) => {
 	event.locals.supabase = createClient(event.cookies);

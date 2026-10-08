@@ -27,5 +27,9 @@ export const variables = defineEnvVars({
 	N8N_WEBHOOK_SECRET: {
 		schema: required('N8N_WEBHOOK_SECRET'),
 		description: "Shared secret sent as X-Webhook-Secret to authenticate the call to n8n."
+	},
+	N8N_DELETE_WEBHOOK_URL: {
+		schema: required('N8N_DELETE_WEBHOOK_URL'),
+		description: "n8n production webhook URL that performs full account deletion."
 	}
 });
