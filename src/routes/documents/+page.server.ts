@@ -5,6 +5,7 @@ export interface ExtractedFields {
 	total: number | null;
 	currency: string | null;
 	category: string | null;
+	category_source: string;
 	needs_review: boolean;
 }
 
@@ -21,7 +22,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const { data, error } = await supabase
 		.from('documents')
 		.select(
-			'id, original_filename, status, uploaded_at, extracted_fields(vendor, total, currency, category, needs_review)'
+			'id, original_filename, status, uploaded_at, extracted_fields(vendor, total, currency, category, category_source, needs_review)'
 		)
 		.order('uploaded_at', { ascending: false });
 
