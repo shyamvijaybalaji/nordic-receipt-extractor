@@ -30,16 +30,31 @@
 				continue;
 			}
 
-			const { error: insertError } = await supabase.from('documents').insert({
-				user_id: userId,
-				storage_path: path,
-				original_filename: file.name,
-				mime_type: file.type,
-				status: 'uploaded'
-			});
+			const { data: inserted, error: insertError } = await supabase
+				.from('documents')
+				.insert({
+					user_id: userId,
+					storage_path: path,
+					original_filename: file.name,
+					mime_type: file.type,
+					status: 'uploaded'
+				})
+				.select('id')
+				.single();
 
 			if (insertError) {
 				errors = [...errors, `${file.name}: ${insertError.message}`];
+				continue;
+			}
+
+			const triggerResponse = await fetch('/api/documents/trigger', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ document_id: inserted.id })
+			});
+
+			if (!triggerResponse.ok) {
+				errors = [...errors, `${file.name}: uploaded, but couldn't start processing`];
 			}
 		}
 

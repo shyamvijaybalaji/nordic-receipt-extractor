@@ -19,6 +19,10 @@ create policy "profiles_update_own" on public.profiles
 for update
 using (auth.uid () = id);
 
+-- With "Automatically expose new tables" off, PostgREST has no access to this
+-- table until it's granted explicitly — RLS alone isn't enough without this.
+grant select, update on public.profiles to authenticated;
+
 -- Auto-create a profile row the moment someone signs up.
 create function public.handle_new_user () returns trigger language plpgsql security definer set search_path = public as $$
 begin
@@ -67,6 +71,8 @@ for update
 using (auth.uid () = user_id);
 
 create policy "documents_delete_own" on public.documents for delete using (auth.uid () = user_id);
+
+grant select, insert, update, delete on public.documents to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- storage: private "documents" bucket, one folder per user (named by their uid)
