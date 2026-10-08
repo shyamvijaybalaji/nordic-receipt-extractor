@@ -111,12 +111,13 @@
 
 <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
 	<h1 style="font-size: 1.4rem; margin: 0;">Documents</h1>
-	{#if data.documents.length > 0}
-		<div style="display: flex; gap: 0.5rem;">
+	<div style="display: flex; gap: 0.5rem;">
+		<a class="btn" href="/summary">Monthly summary</a>
+		{#if data.documents.length > 0}
 			<a class="btn" href="/export/csv">Export CSV</a>
 			<a class="btn" href="/export/xlsx">Export Excel</a>
-		</div>
-	{/if}
+		{/if}
+	</div>
 </div>
 
 <div style="margin-top: 1rem;">

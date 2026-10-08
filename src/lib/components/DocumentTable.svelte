@@ -29,13 +29,15 @@
 		processing: 'Processing',
 		done: 'Done',
 		needs_review: 'Needs review',
-		failed: 'Failed'
+		failed: 'Failed',
+		capped: 'Monthly limit reached'
 	};
 
 	const STATUS_CLASS: Record<string, string> = {
 		done: 'badge-done',
 		needs_review: 'badge-review',
-		failed: 'badge-failed'
+		failed: 'badge-failed',
+		capped: 'badge-failed'
 	};
 
 	function formatDate(iso: string) {
