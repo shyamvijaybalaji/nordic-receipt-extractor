@@ -1,0 +1,51 @@
+name: Validate .gitpod.yml
+
+on:
+  push:
+    paths:
+      - .gitpod.yml
+      - .gitpod.Dockerfile
+  pull_request:
+    paths:
+      - .gitpod.yml
+      - .gitpod.Dockerfile
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - run: npm install --no-save js-yaml
+
+      - name: Parse YAML and check required keys
+        run: |
+          node -e "
+            const fs = require('fs');
+            const yaml = require('js-yaml');
+            const config = yaml.load(fs.readFileSync('.gitpod.yml', 'utf8'));
+
+            if (!config || typeof config !== 'object') {
+              throw new Error('.gitpod.yml did not parse to an object');
+            }
+            if (!Array.isArray(config.tasks) || config.tasks.length === 0) {
+              throw new Error('.gitpod.yml must define at least one task');
+            }
+            for (const task of config.tasks) {
+              if (!task.command && !task.init) {
+                throw new Error('Each task needs an init and/or command');
+              }
+            }
+            if (config.ports) {
+              for (const p of config.ports) {
+                if (typeof p.port !== 'number') {
+                  throw new Error('Each port entry needs a numeric port');
+                }
+              }
+            }
+            console.log('.gitpod.yml is valid:', JSON.stringify(config, null, 2));
+          "
