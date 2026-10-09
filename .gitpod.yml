@@ -1,3 +1,4 @@
+# Validated on every change by .github/workflows/validate-gitpod.yml
 image: node:24
 
 tasks:
