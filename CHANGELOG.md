@@ -7,13 +7,25 @@ since this is a single-maintainer app without versioned releases.
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-10-10
+
+First tagged release. Covers everything built through the end of Phase 6
+plus repo housekeeping and CI.
+
 ### Added
 - Batch API retry: nightly Claude Batch API resubmission for documents that
   failed outright (API/network errors), separate from the needs-review
   escalation path — 50% cheaper than the synchronous retry, exactly once
   per document.
-- Repo housekeeping: README, LICENSE (MIT), `.gitattributes`,
-  `CONTRIBUTING.md`, `CODEOWNERS`, issue templates, PR template.
+- Vitest unit test suite (`npm test`, `npm run coverage`), starting with
+  `src/lib/export.ts`.
+- CI on GitHub Actions: a `test.yml` workflow running the test suite on
+  every push/PR, and a `validate-gitpod.yml` workflow validating
+  `.gitpod.yml`'s structure on change.
+- Repo housekeeping: README, LICENSE (MIT), `CONTRIBUTING.md`,
+  `CODE_OF_CONDUCT.md`, `SECURITY.md`, `CODEOWNERS`, issue templates, PR
+  template, `.gitattributes`, `.editorconfig`, `.nvmrc`, `.dockerignore`,
+  `.gitpod.yml`, `static/.well-known/security.txt`.
 
 ### Fixed
 - `extracted_fields` was typed and queried as an array; it's actually a
