@@ -1,5 +1,7 @@
 # nordic-receipt-extractor
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 A SvelteKit + Supabase app that extracts structured data (vendor, total,
 currency, VAT, category) from uploaded receipts and invoices using Claude,
 and exports the results for bookkeeping.
