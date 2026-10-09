@@ -1,0 +1,8 @@
+# This app isn't deployed to a public domain yet. Once it is, add a
+# Canonical field here pointing to its exact hosted URL (RFC 9116 requires
+# it to validate), e.g.:
+# Canonical: https://your-production-domain/.well-known/security.txt
+
+Contact: mailto:shyamvijaybalaji@gmail.com
+Expires: 2027-10-10T00:00:00.000Z
+Preferred-Languages: en
