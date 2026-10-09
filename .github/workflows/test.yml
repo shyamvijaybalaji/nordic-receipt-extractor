@@ -18,4 +18,13 @@ jobs:
           cache: npm
 
       - run: npm ci
+
       - run: npm test
+        env:
+          # Dummy values so SvelteKit's env validation (src/env.ts) passes.
+          # No test currently touches Supabase or n8n at runtime.
+          SUPABASE_URL: https://example.supabase.co
+          SUPABASE_ANON_KEY: test-anon-key
+          N8N_WEBHOOK_URL: https://example.invalid/webhook
+          N8N_WEBHOOK_SECRET: test-secret
+          N8N_DELETE_WEBHOOK_URL: https://example.invalid/delete-webhook
