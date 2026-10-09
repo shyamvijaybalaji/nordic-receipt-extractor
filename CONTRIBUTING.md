@@ -51,6 +51,8 @@ already shows what changed).
 - TypeScript everywhere in `src/`; keep row/shape types next to the query
   that produces them (see `src/lib/export.ts`, `src/routes/documents/+page.server.ts`)
   rather than a central types file.
-- No test suite yet — verify changes by running the app locally
+- Unit tests use Vitest (`npm test`, `npm run coverage`) — currently covers
+  pure helpers like `src/lib/export.ts`. Most of the app still has no
+  automated coverage; verify UI/pipeline changes by running the app locally
   (`npm run dev`) against a real Supabase project and, where relevant, the
   n8n extraction pipeline.
