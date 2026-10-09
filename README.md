@@ -1,56 +1,51 @@
-# sv
+# nordic-receipt-extractor
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A SvelteKit + Supabase app that extracts structured data (vendor, total,
+currency, VAT, category) from uploaded receipts and invoices using Claude,
+and exports the results for bookkeeping.
 
-## Creating a project
+## How it works
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. A user signs in (Supabase magic-link auth) and uploads a PDF/JPG/PNG to
+   `/documents`. The file lands in a private Supabase Storage bucket, scoped
+   to that user by row-level security.
+2. An n8n workflow (see [`n8n/`](n8n)) picks up the upload, scans it for
+   malware (ClamAV), and sends it to Claude (Haiku first, escalating to
+   Sonnet when confidence is low) to extract the receipt fields.
+3. Results are written back to Supabase; the user can review/correct the
+   category inline, and export everything as CSV from `/export`.
+4. Failures and timeouts are self-healing: a dead-letter sweep reclaims
+   stuck documents, and a nightly Batch API job retries documents that
+   failed outright at half the per-token cost.
 
-```sh
-# create a new project
-npx sv create my-app
-```
+## Project layout
 
-To recreate this project with the same configuration:
+- `src/routes/` — SvelteKit pages: `login`, `documents` (upload + table),
+  `export`, `summary` (monthly usage/cost), `account` (GDPR export/delete).
+- `src/lib/` — shared helpers (`export.ts` CSV generation, `vendor.ts`
+  vendor-category memory, `gdpr-export.ts`, Supabase client setup).
+- `supabase/migrations/` — schema, RLS policies, and grants, applied in
+  order.
+- `n8n/` — exported workflow JSON for every background job: extraction,
+  account deletion, dead-letter sweep, and the Batch API retry
+  submit/poll pair.
 
-```sh
-# recreate this project
-npx sv@1.1.1 create --template minimal --types ts --install npm nordic-receipt-extractor
-```
+## Setup
 
-## Adding features
+See [`SETUP.md`](SETUP.md) for the Phase 1 walkthrough (Supabase project,
+migration, auth redirect, local dev server). Required environment
+variables are listed in [`.env.example`](.env.example); later phases add
+the n8n webhook and Claude-related config on top of that.
 
-Add features to your project with `sv add`:
-
-```sh
-npx sv add
-```
-
-For example, to add Tailwind CSS:
-
-```sh
-npx sv add tailwindcss
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
+```bash
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+## Status
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+Built in phases, tracked in order: auth/upload/storage → Haiku extraction
+→ Sonnet escalation + vendor memory + export → usage caps/cost logging →
+GDPR export/delete → reliability (retries, dead-letter, malware scanning,
+Batch API retry). This is a personal/small-scale project, not a public
+product — the repo is private.
