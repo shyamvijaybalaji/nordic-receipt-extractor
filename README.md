@@ -50,4 +50,4 @@ Built in phases, tracked in order: auth/upload/storage → Haiku extraction
 → Sonnet escalation + vendor memory + export → usage caps/cost logging →
 GDPR export/delete → reliability (retries, dead-letter, malware scanning,
 Batch API retry). This is a personal/small-scale project, not a public
-product — the repo is private.
+product, shared here in source form for reference.
