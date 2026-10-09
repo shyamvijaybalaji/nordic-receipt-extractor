@@ -13,6 +13,23 @@ export interface ExportRow {
 	original_filename: string;
 }
 
+interface ExportQueryRow {
+	status: string;
+	original_filename: string;
+	// extracted_fields is a to-one embed (document_id is unique), so
+	// PostgREST returns it as a single object, not an array.
+	extracted_fields: {
+		date: string | null;
+		vendor: string | null;
+		description: string | null;
+		category: string | null;
+		currency: string | null;
+		total: number | null;
+		vat_amount: number | null;
+		vat_rate: number | null;
+	} | null;
+}
+
 export async function fetchExportRows(supabase: SupabaseClient): Promise<ExportRow[]> {
 	// RLS scopes this to the signed-in user — only their own documents come back.
 	const { data, error } = await supabase
@@ -24,8 +41,8 @@ export async function fetchExportRows(supabase: SupabaseClient): Promise<ExportR
 
 	if (error) throw error;
 
-	return (data ?? []).map((doc) => {
-		const fields = Array.isArray(doc.extracted_fields) ? doc.extracted_fields[0] : undefined;
+	return ((data ?? []) as unknown as ExportQueryRow[]).map((doc) => {
+		const fields = doc.extracted_fields ?? undefined;
 		return {
 			date: fields?.date ?? null,
 			vendor: fields?.vendor ?? null,

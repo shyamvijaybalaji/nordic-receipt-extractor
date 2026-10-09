@@ -14,7 +14,7 @@
 		status: string;
 		uploaded_at: string;
 		failure_reason: string | null;
-		extracted_fields: ExtractedFields[];
+		extracted_fields: ExtractedFields | null;
 	};
 
 	let {
@@ -31,14 +31,16 @@
 		done: 'Done',
 		needs_review: 'Needs review',
 		failed: 'Failed',
-		capped: 'Monthly limit reached'
+		capped: 'Monthly limit reached',
+		batch_pending: 'Retrying overnight'
 	};
 
 	const STATUS_CLASS: Record<string, string> = {
 		done: 'badge-done',
 		needs_review: 'badge-review',
 		failed: 'badge-failed',
-		capped: 'badge-failed'
+		capped: 'badge-failed',
+		batch_pending: 'badge-review'
 	};
 
 	function formatDate(iso: string) {
@@ -48,7 +50,7 @@
 		});
 	}
 
-	function formatTotal(fields: ExtractedFields | undefined) {
+	function formatTotal(fields: ExtractedFields | null | undefined) {
 		if (!fields || fields.total == null) return '—';
 		const amount = fields.currency
 			? new Intl.NumberFormat(undefined, { style: 'currency', currency: fields.currency }).format(
@@ -86,7 +88,7 @@
 		</thead>
 		<tbody>
 			{#each documents as doc (doc.id)}
-				{@const fields = doc.extracted_fields?.[0]}
+				{@const fields = doc.extracted_fields}
 				<tr>
 					<td>{doc.original_filename}</td>
 					<td>{fields?.vendor ?? '—'}</td>
@@ -113,7 +115,9 @@
 					<td>
 						<span
 							class="badge {STATUS_CLASS[doc.status] ?? ''}"
-							title={doc.status === 'failed' ? (doc.failure_reason ?? undefined) : undefined}
+							title={doc.status === 'failed' || doc.status === 'batch_pending'
+								? (doc.failure_reason ?? undefined)
+								: undefined}
 						>
 							{STATUS_LABEL[doc.status] ?? doc.status}
 						</span>

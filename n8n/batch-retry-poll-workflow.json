@@ -1,0 +1,733 @@
+{
+  "id": "4f3b2fb1-74ac-4034-a403-f6bf908fe1d3",
+  "versionId": "2265fc0a-ec5c-491e-91b3-e09cf8a89dce",
+  "name": "Batch Retry Poll",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "bp1-schedule",
+      "name": "Poll Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "bp0-manual-webhook",
+      "name": "Manual Poll Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        380
+      ],
+      "webhookId": "batch-retry-poll-run",
+      "parameters": {
+        "path": "batch-retry-poll-run",
+        "httpMethod": "GET",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3f0cadf1-c641-4f37-ac56-e64d71c9c008",
+          "name": "Receipt Webhook Secret"
+        }
+      }
+    },
+    {
+      "id": "bp2-find-pending",
+      "name": "Find Pending Documents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "select",
+              "value": "id,batch_id,user_id"
+            },
+            {
+              "name": "status",
+              "value": "eq.batch_pending"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "bp3-collect",
+      "name": "Collect Pending",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const documents = $input.all().map((item) => item.json).filter((d) => d && d.id);\nconst batchIds = [...new Set(documents.map((d) => d.batch_id))];\nreturn [{ json: { documents, batchIds } }];"
+      }
+    },
+    {
+      "id": "bp4-has-pending",
+      "name": "Has Pending?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-pending",
+              "leftValue": "={{ $json.documents.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bp5-split-batch-ids",
+      "name": "Split Out Batch IDs",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        680,
+        220
+      ],
+      "parameters": {
+        "fieldToSplitOut": "batchIds",
+        "options": {}
+      }
+    },
+    {
+      "id": "bp6-check-status",
+      "name": "Check Batch Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        220
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.anthropic.com/v1/messages/batches/{{ $json.batchIds }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "87f557ee-fb70-4927-a575-14ea12168c5a",
+          "name": "Anthropic API Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "bp7-batch-ended",
+      "name": "Batch Ended?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        220
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-batch-ended",
+              "leftValue": "={{ $json.processing_status }}",
+              "rightValue": "ended",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bp8-fetch-results",
+      "name": "Fetch Results Raw",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1340,
+        140
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.results_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "87f557ee-fb70-4927-a575-14ea12168c5a",
+          "name": "Anthropic API Key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "bp9-parse-results",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        140
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const batchInfo = $input.first().json;\nconst raw = batchInfo.data || '';\nconst lines = raw.split('\\n').map((l) => l.trim()).filter(Boolean);\nconst pending = $('Collect Pending').first().json.documents;\n\nconst validRates = [0, 6, 10, 12, 14.5, 15, 25, 25.5];\n\nfunction validate(extracted) {\n  const errors = [];\n  const lowConfidence = extracted.confidence && Object.values(extracted.confidence).some((c) => typeof c === 'number' && c < 0.75);\n  if (lowConfidence) errors.push('low model confidence on at least one field');\n  if (extracted.vat_rate != null && !validRates.includes(Number(extracted.vat_rate))) errors.push('unrecognized vat_rate');\n  if (extracted.total != null && extracted.vat_amount != null && extracted.vat_rate != null) {\n    const rate = Number(extracted.vat_rate);\n    const total = Number(extracted.total);\n    const expectedVat = (total * rate) / (100 + rate);\n    if (Math.abs(expectedVat - Number(extracted.vat_amount)) > 0.02 * total + 0.05) errors.push('vat_amount inconsistent with total and vat_rate');\n  }\n  if (extracted.date != null) {\n    const d = new Date(extracted.date);\n    const now = new Date();\n    const tenYearsAgo = new Date();\n    tenYearsAgo.setFullYear(now.getFullYear() - 10);\n    if (isNaN(d.getTime()) || d > now || d < tenYearsAgo) errors.push('implausible date');\n  }\n  if (extracted.currency != null && !/^[A-Z]{3}$/.test(extracted.currency)) errors.push('invalid currency code');\n  if (extracted.total != null && Number(extracted.total) <= 0) errors.push('total must be positive');\n  return errors;\n}\n\nconst out = [];\nfor (const line of lines) {\n  let parsed;\n  try {\n    parsed = JSON.parse(line);\n  } catch (e) {\n    continue;\n  }\n  const documentId = parsed.custom_id;\n  const doc = pending.find((d) => d.id === documentId);\n  if (!doc) continue;\n\n  if (parsed.result.type === 'succeeded') {\n    let extracted;\n    let parseFailed = false;\n    try {\n      const textBlock = parsed.result.message.content.find((b) => b.type === 'text');\n      let text = (textBlock?.text || '').trim();\n      text = text.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/, '');\n      extracted = JSON.parse(text);\n    } catch (e) {\n      extracted = {};\n      parseFailed = true;\n    }\n    const errors = parseFailed ? ['could not parse model response as JSON'] : validate(extracted);\n    out.push({\n      json: {\n        document_id: documentId,\n        user_id: doc.user_id,\n        outcome: 'succeeded',\n        date: extracted.date ?? null,\n        vendor: extracted.vendor ?? null,\n        total: extracted.total ?? null,\n        currency: extracted.currency ?? null,\n        vat_amount: extracted.vat_amount ?? null,\n        vat_rate: extracted.vat_rate ?? null,\n        description: extracted.description ?? null,\n        category: extracted.category_suggestion ?? null,\n        confidence: extracted.confidence ?? null,\n        needs_review: errors.length > 0,\n        validation_errors: errors\n      }\n    });\n  } else {\n    const reason =\n      parsed.result.type === 'errored'\n        ? parsed.result.error?.error?.message || parsed.result.error?.message || 'unknown error'\n        : parsed.result.type;\n    out.push({ json: { document_id: documentId, user_id: doc.user_id, outcome: parsed.result.type, error_message: reason } });\n  }\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "bp10-succeeded",
+      "name": "Succeeded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        140
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-succeeded",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "succeeded",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "bp11-prepare-cache",
+      "name": "Prepare Cache Lookup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        60
+      ],
+      "parameters": {
+        "jsCode": "const result = $json;\nconst normalized = (result.vendor || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, ' ').trim();\nreturn [{ json: { ...result, vendor_normalized: normalized } }];"
+      }
+    },
+    {
+      "id": "bp12-lookup-cache",
+      "name": "Lookup Vendor Cache",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        60
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/vendor_category_preferences",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "user_id",
+              "value": "=eq.{{ $json.user_id }}"
+            },
+            {
+              "name": "vendor_normalized",
+              "value": "=eq.{{ $json.vendor_normalized }}"
+            },
+            {
+              "name": "select",
+              "value": "category"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "id": "bp13-apply-cache",
+      "name": "Apply Cache Override",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2440,
+        60
+      ],
+      "parameters": {
+        "jsCode": "const result = $('Prepare Cache Lookup').first().json;\nconst cacheRows = $input.first().json;\nconst cached = Array.isArray(cacheRows) && cacheRows.length > 0 ? cacheRows[0] : null;\nreturn [{ json: {\n  ...result,\n  category: cached ? cached.category : result.category,\n  category_source: cached ? 'cache' : 'ai'\n} }];"
+      }
+    },
+    {
+      "id": "bp14-write-fields",
+      "name": "Write Extracted Fields",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2660,
+        60
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/extracted_fields",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "on_conflict",
+              "value": "document_id"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates,return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ document_id: $json.document_id, date: $json.date, vendor: $json.vendor, total: $json.total, currency: $json.currency, vat_amount: $json.vat_amount, vat_rate: $json.vat_rate, description: $json.description, category: $json.category, category_source: $json.category_source, confidence: $json.confidence, model_used: 'haiku', needs_review: $json.needs_review }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "bp15-update-status",
+      "name": "Update Document Status Batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2880,
+        60
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents?id=eq.{{ $('Apply Cache Override').first().json.document_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $('Apply Cache Override').first().json.needs_review ? 'needs_review' : 'done' }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "bp16-mark-failed",
+      "name": "Mark Batch Retry Failed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        240
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://hgkhdooddhxpgqkqjmha.supabase.co/rest/v1/documents?id=eq.{{ $json.document_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhna2hkb29kZGh4cGdxa3FqbWhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0NzY4MjksImV4cCI6MjEwNzA1MjgyOX0.gd5I8R5Z3gafJ71lWgPktxgHB66atRyFn1qc3663aG0"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'failed', failure_reason: 'Batch retry ' + $json.outcome + ': ' + String($json.error_message).slice(0, 500) }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "17193cf8-d08b-4259-8911-45dec3d63606",
+          "name": "Supabase Service Role"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Poll Schedule": {
+      "main": [
+        [
+          {
+            "node": "Find Pending Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Poll Webhook": {
+      "main": [
+        [
+          {
+            "node": "Find Pending Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Pending Documents": {
+      "main": [
+        [
+          {
+            "node": "Collect Pending",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Collect Pending": {
+      "main": [
+        [
+          {
+            "node": "Has Pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Pending?": {
+      "main": [
+        [
+          {
+            "node": "Split Out Batch IDs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Split Out Batch IDs": {
+      "main": [
+        [
+          {
+            "node": "Check Batch Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Batch Status": {
+      "main": [
+        [
+          {
+            "node": "Batch Ended?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Batch Ended?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Results Raw",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Fetch Results Raw": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Results": {
+      "main": [
+        [
+          {
+            "node": "Succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Cache Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Batch Retry Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Cache Lookup": {
+      "main": [
+        [
+          {
+            "node": "Lookup Vendor Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Vendor Cache": {
+      "main": [
+        [
+          {
+            "node": "Apply Cache Override",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Cache Override": {
+      "main": [
+        [
+          {
+            "node": "Write Extracted Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Extracted Fields": {
+      "main": [
+        [
+          {
+            "node": "Update Document Status Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
